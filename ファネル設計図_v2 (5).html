@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDB ファネル設計図</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Arial', sans-serif; background: #f8f8f8; padding: 30px; min-width: 1200px; }
+  h1 { font-size: 18px; color: #333; margin-bottom: 4px; }
+  p.sub { font-size: 11px; color: #888; margin-bottom: 20px; }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    font-size: 11px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+
+  /* ===== 漏れ率バー ===== */
+  .leak-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 0;
+  }
+  .leak-stage {
+    flex: 1;
+    text-align: center;
+  }
+  .leak-bar-wrap {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 60px;
+  }
+  .leak-label {
+    font-size: 10px;
+    color: #888;
+    margin-bottom: 2px;
+  }
+  .leak-pill {
+    background: #FF5252;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .leak-arrow {
+    font-size: 20px;
+    color: #ccc;
+    margin: 0 4px;
+  }
+
+  .funnel-numbers {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 0;
+  }
+  .fn-stage {
+    flex: 1;
+    text-align: center;
+  }
+  .fn-number {
+    font-size: 22px;
+    font-weight: bold;
+    color: #333;
+  }
+  .fn-label {
+    font-size: 10px;
+    color: #888;
+  }
+  .fn-arrow {
+    flex: 0 0 60px;
+    text-align: center;
+    font-size: 20px;
+    color: #ddd;
+  }
+
+  /* ===== フロー ===== */
+  .flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .stage:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -16px;
+    top: 20px;
+    width: 0;
+    height: 0;
+    border-top: 16px solid transparent;
+    border-bottom: 16px solid transparent;
+    border-left: 16px solid;
+    z-index: 10;
+  }
+  .stage:nth-child(1)::after { border-left-color: #E91E8C; }
+  .stage:nth-child(3)::after { border-left-color: #AD1457; }
+  .stage:nth-child(5)::after { border-left-color: #7B1FA2; }
+
+  .arrow-spacer { width: 16px; flex-shrink: 0; }
+
+  .stage-header {
+    padding: 8px 10px;
+    font-weight: bold;
+    font-size: 12px;
+    color: white;
+    text-align: center;
+    border-radius: 6px 6px 0 0;
+  }
+  .sh1 { background: #E91E8C; }
+  .sh2 { background: #AD1457; }
+  .sh3 { background: #7B1FA2; }
+  .sh4 { background: #4A148C; }
+
+  .stage-body {
+    background: white;
+    border: 1px solid #eee;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 10px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: bold;
+    color: #888;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 3px;
+    margin-bottom: 3px;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    margin: 1px 0;
+    line-height: 1.6;
+  }
+  .tag-pink { background: #FCE4EC; color: #880E4F; }
+  .tag-purple { background: #EDE7F6; color: #4A148C; }
+  .tag-orange { background: #FFF3E0; color: #E65100; }
+
+  .kpi-badge {
+    display: inline-block;
+    background: #FFF9C4;
+    border: 1px solid #F9A825;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 10px;
+    margin: 1px 0;
+    line-height: 1.6;
+  }
+  .monitor-badge {
+    display: inline-block;
+    background: #F5F5F5;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 10px;
+    margin: 1px 0;
+    color: #666;
+    line-height: 1.6;
+  }
+  .target-badge {
+    display: inline-block;
+    background: #E3F2FD;
+    color: #1565C0;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 10px;
+    margin: 1px 0;
+    line-height: 1.6;
+  }
+
+  .stopgo { font-size: 10px; line-height: 1.8; color: #333; }
+  .go { color: #2E7D32; font-weight: bold; }
+  .stop { color: #C62828; font-weight: bold; }
+
+  /* 漏れポイント */
+  .leak-point {
+    background: #FFF3E0;
+    border: 1px solid #FFB74D;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 10px;
+    color: #E65100;
+    line-height: 1.6;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px dashed #ddd;
+    margin: 4px 0;
+  }
+
+  /* 注釈 */
+  .note {
+    margin-top: 16px;
+    font-size: 10px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<h1>CDB 37期　ファネル設計図</h1>
+<p class="sub">A&P総額：9,400万円　　※漏れ率は参考値（出所：ブランドアンケート・Shopifyデータ）</p>
+
+<div class="legend">
+  <div class="legend-item"><span class="kpi-badge">KPI</span>追う指標</div>
+  <div class="legend-item"><span class="monitor-badge">モニタリング</span>見るだけ</div>
+  <div class="legend-item"><span class="target-badge">ターゲット</span></div>
+  <div class="legend-item"><span class="tag tag-orange">リテールマーケ</span>店頭施策</div>
+  <div class="legend-item" style="color:#E65100; font-size:11px;">🔴 漏れポイント</div>
+</div>
+
+<!-- 漏れ率の数字 -->
+<div class="funnel-numbers">
+  <div class="fn-stage">
+    <div class="fn-number">17.8%</div>
+    <div class="fn-label">ブランド想起率（GM）</div>
+  </div>
+  <div class="fn-arrow">→</div>
+  <div class="fn-stage">
+    <div class="fn-number">7.3%</div>
+    <div class="fn-label">実使用率（GM）</div>
+  </div>
+  <div class="fn-arrow">→</div>
+  <div class="fn-stage">
+    <div class="fn-number">9.1%</div>
+    <div class="fn-label">次回購入意向（GM）</div>
+  </div>
+</div>
+
+<!-- フロー -->
+<div class="flow">
+
+  <!-- 認知 -->
+  <div class="stage">
+    <div class="stage-header sh1">認知</div>
+    <div class="stage-body">
+
+      <div>
+        <div class="section-label">ターゲット</div>
+        <span class="target-badge">新規未獲得層</span><br>
+        <span class="target-badge">指名なし52%</span>
+      </div>
+
+      <div>
+        <div class="section-label">デジタル施策</div>
+        <span class="tag tag-pink">Google・Meta広告</span><br>
+        <span class="tag tag-pink">KOL・インフルエンサー</span><br>
+        <span class="tag tag-pink">NYLONなどメディアコラボ</span><br>
+        <span class="tag tag-pink">動画撮影費</span>
+      </div>
+
+      <div>
+        <div class="section-label">リテールマーケ</div>
+        <span class="tag tag-orange">POPUP・PRイベント</span><br>
+        <span class="tag tag-orange">店頭での試用機会創出</span>
+      </div>
+
+      <div>
+        <div class="section-label">KPI / モニタリング</div>
+        <span class="kpi-badge">新商品発売月セッション数</span><br>
+        <span class="kpi-badge">クーポンコード使用数</span><br>
+        <span class="monitor-badge">インプレッション数</span><br>
+        <span class="monitor-badge">UGC件数</span>
+      </div>
+
+      <div>
+        <div class="section-label">STOP / GO</div>
+        <div class="stopgo">
+          Google・Meta広告<br>
+          <span class="go">GO</span>　ROAS改善傾向→予算拡大<br>
+          <span class="stop">STOP</span>　ROAS低下が続く→クリエイティブ見直し<br>
+          KOL・インフルエンサー<br>
+          <span class="go">GO</span>　エンゲージメント数・クーポン使用数が増加<br>
+          <span class="stop">STOP</span>　エンゲージメントのみでCV繋がらない→起用見直し
+        </div>
+      </div>
+
+      <div class="leak-point">
+        🔴 ここで漏れている<br>
+        知っているのに買っていない人が多い。認知から購入までの接触が足りていない
+      </div>
+
+    </div>
+  </div>
+
+  <div class="arrow-spacer"></div>
+
+  <!-- 興味・検討 -->
+  <div class="stage">
+    <div class="stage-header sh2">興味・検討</div>
+    <div class="stage-body">
+
+      <div>
+        <div class="section-label">ターゲット</div>
+        <span class="target-badge">迷っている層</span><br>
+        <span class="target-badge">次回購入未定 41.5%</span>
+      </div>
+
+      <div>
+        <div class="section-label">デジタル施策</div>
+        <span class="tag tag-pink">デジタル施策</span><br>
+        <span class="tag tag-pink">PR会社</span><br>
+        <span class="tag tag-pink">受賞バッジ</span>
+      </div>
+
+      <div>
+        <div class="section-label">リテールマーケ</div>
+        <span class="tag tag-orange">テスター強化</span><br>
+        <span class="tag tag-orange">店舗スタッフ教育</span><br>
+        <span class="tag tag-orange">什器でのブランド訴求</span>
+      </div>
+
+      <div>
+        <div class="section-label">KPI / モニタリング</div>
+        <span class="kpi-badge">口コミ件数</span><br>
+        <span class="kpi-badge">メディア掲載件数</span><br>
+        <span class="monitor-badge">@cosmeランキング順位</span><br>
+        <span class="monitor-badge">指名検索数</span>
+      </div>
+
+      <div>
+        <div class="section-label">STOP / GO</div>
+        <div class="stopgo">
+          デジタル施策<br>
+          <span class="go">GO</span>　口コミ件数・エンゲージメント増加傾向<br>
+          <span class="stop">STOP</span>　反応が止まる・口コミ減少→内容見直し<br>
+          PR会社<br>
+          <span class="go">GO</span>　メディア掲載件数増加<br>
+          <span class="stop">STOP</span>　掲載ゼロが続く→方針見直し
+        </div>
+      </div>
+
+      <div class="leak-point">
+        🔴 ここで漏れている<br>
+        「気になるけどまだ決めていない」層が41.5%。興味はあるのに購入に踏み切れていない
+      </div>
+
+    </div>
+  </div>
+
+  <div class="arrow-spacer"></div>
+
+  <!-- 購買 -->
+  <div class="stage">
+    <div class="stage-header sh3">購買</div>
+    <div class="stage-body">
+
+      <div>
+        <div class="section-label">ターゲット</div>
+        <span class="target-badge">検討層・来店者</span><br>
+        <span class="target-badge">EC来訪者</span>
+      </div>
+
+      <div>
+        <div class="section-label">デジタル施策</div>
+        <span class="tag tag-pink">Meta広告（リターゲティング）</span><br>
+        <span class="tag tag-pink">アフィリエイト</span><br>
+        <span class="tag tag-pink">GWP</span>
+      </div>
+
+      <div>
+        <div class="section-label">リテールマーケ</div>
+        <span class="tag tag-orange">VMD・什器</span><br>
+        <span class="tag tag-orange">店頭プロモーション</span><br>
+        <span class="tag tag-orange">POPUP施工</span><br>
+        <span class="tag tag-orange">棚の質・フェイス数管理</span><br>
+        <span class="tag tag-orange">ドンキへの露出強化</span>
+      </div>
+
+      <div>
+        <div class="section-label">KPI / モニタリング</div>
+        <span class="kpi-badge">ROAS</span><br>
+        <span class="kpi-badge">店頭消化率</span><br>
+        <span class="kpi-badge">POPUP経由売上</span><br>
+        <span class="monitor-badge">CVR</span><br>
+        <span class="monitor-badge">CPA</span>
+      </div>
+
+      <div>
+        <div class="section-label">STOP / GO</div>
+        <div class="stopgo">
+          リターゲティング広告<br>
+          <span class="go">GO</span>　ROAS改善傾向→予算拡大<br>
+          <span class="stop">STOP</span>　ROAS低下が続く→ターゲット・クリエイティブ見直し<br>
+          POPUP・店頭プロモ<br>
+          <span class="go">GO</span>　消化率・経由売上が投資額を上回る<br>
+          <span class="stop">STOP</span>　消化率が低い状態が続く→出店場所・設計見直し
+        </div>
+      </div>
+
+      <div class="leak-point">
+        🔴 ここで漏れている<br>
+        ①広告で興味を持っても店頭での購買転換に繋がらない可能性もある。CVRへの貢献度は意識する必要がある<br>
+        ②SNSでのコンテンツ拡散をリアル店頭・ECの購買に繋げるための連動設計が必要。現状は計測の仕組みも含めて整備途上
+      </div>
+
+    </div>
+  </div>
+
+  <div class="arrow-spacer"></div>
+
+  <!-- リピート -->
+  <div class="stage">
+    <div class="stage-header sh4">リピート</div>
+    <div class="stage-body">
+
+      <div>
+        <div class="section-label">ターゲット</div>
+        <span class="target-badge">At risk層 1,198人</span><br>
+        <span class="target-badge">Previously loyal 359人</span><br>
+        <span class="target-badge">既存ロイヤル層</span>
+      </div>
+
+      <div>
+        <div class="section-label">デジタル施策</div>
+        <span class="tag tag-purple">LINE広告</span><br>
+        <span class="tag tag-purple">メール・クーポン</span><br>
+        <span class="tag tag-purple">ECコンサル</span><br>
+        <span class="tag tag-purple">公式アンバサダー</span>
+      </div>
+
+      <div>
+        <div class="section-label">リテールマーケ</div>
+        <span class="tag tag-orange">ポイント施策（スギ薬局等）</span><br>
+        <span class="tag tag-orange">定番色の棚訴求強化</span>
+      </div>
+
+      <div>
+        <div class="section-label">KPI / モニタリング</div>
+        <span class="kpi-badge">リピーター注文数</span><br>
+        <span class="kpi-badge">クーポン使用数</span><br>
+        <span class="monitor-badge">開封率・CTR</span><br>
+        <span class="monitor-badge">継続購入率</span>
+      </div>
+
+      <div>
+        <div class="section-label">STOP / GO</div>
+        <div class="stopgo">
+          LINE広告・メール・クーポン<br>
+          <span class="go">GO</span>　リピーター注文数増加傾向<br>
+          <span class="stop">STOP</span>　注文数が連続マイナス→内容・頻度見直し<br>
+          アンバサダー<br>
+          <span class="go">GO</span>　継続購入率・エンゲージメント増加<br>
+          <span class="stop">STOP</span>　反応なし→人選・訴求内容見直し
+        </div>
+      </div>
+
+      <div class="leak-point">
+        🔴 ここで漏れている<br>
+        GM定番色のリピートが落ちている。どこで・なぜ離脱しているかが把握できていないこと自体が課題
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<p class="note">※数値はブランドアンケート（2,479名）より。Shopifyデータは参考値。</p>
+
+</body>
+</html>
